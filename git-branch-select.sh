@@ -54,10 +54,10 @@ PATTERN="*$**"
 unset IFS
 
 if ! CHECKCMD fzf ;then
-    echo "Could not find \`fzf\` command. Please install \`fzf\` to use this script." >&2
+    echo "Could not find the \`fzf\` command. Please install \`fzf\` to use this script." >&2
     if test -f /etc/os-release -a -r /etc/os-release ;then
         case "$(sed -ne 's/^NAME="\(.*\)"$/\1/p' /etc/os-release)" in
-            "Ubuntu"|*"Debian"*) echo "You may install \`fzf\` using \`sudo apt install fzf\` from the package repositories." >&2 ;exit 1 ;;
+            "Ubuntu"|*"Debian"*) echo "You may install \`fzf\` from the package repositories using \`sudo apt install fzf\`." >&2 ;exit 1 ;;
         esac
     fi
     echo "The project page https://github.com/junegunn/fzf lists installation methods." >&2
