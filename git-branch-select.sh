@@ -26,6 +26,14 @@ USAGE() {
     echo ""
     echo "All positional arguments are joined by \"*\" into the BRANCH_NAME_PATTERN which is then passed to \`git branch\` to pre-filter the list."
     echo ""
+    echo "Selecting a local branch will check it out."
+    echo "Selecting a remote branch will create a local branch tracking the remote branch and check it out."
+    echo "Selecting the remote HEAD will do the same as selecting the remote default branch directly."
+    echo "Selecting a merge request ref will do the same as selecting the corresponding remote branch directly."
+    echo "When using the \`-d/--detach\` option, you can select any ref and it will be checked out detached."
+    echo "When using the \`-w/--worktrees\` option, selecting a branch where the local branch is checked out in another worktree, will start a subshell in that worktree."
+    echo "When using the \`-W/--only-worktrees\` option, you can only select a worktree to start the subshell in."
+    echo ""
 }
 
 declare -i DODETACH="0"
