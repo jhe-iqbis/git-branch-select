@@ -1,5 +1,5 @@
 #! /bin/bash
-# Copyright (c) 2024 iQbis Consulting
+# Copyright (c) 2024 iQbis consulting GmbH
 
 set -u
 readonly SUBCOMMAND_NAME="branch-select"
