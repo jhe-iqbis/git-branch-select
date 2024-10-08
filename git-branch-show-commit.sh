@@ -23,6 +23,18 @@
 
 
 set -u
+readonly SUBCOMMAND_NAME="branch-show-commit"
+
+USAGE() {
+    echo "USAGE: git $SUBCOMMAND_NAME"
+    echo "Show last commit of all branches."
+    echo ""
+}
+
+if test "$#" -gt 0 ;then
+    USAGE
+    exit 1
+fi
 
 git branch |sed -nE 's/^. ([^(].*)$/\1/p' |xargs -rd'\n' git show --no-patch
 

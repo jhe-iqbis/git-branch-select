@@ -22,6 +22,18 @@
 # SOFTWARE.
 
 set -u
+readonly SUBCOMMAND_NAME="branch-auto-delete"
+
+USAGE() {
+    echo "USAGE: git $SUBCOMMAND_NAME"
+    echo "Delete merged local branches."
+    echo ""
+}
+
+if test "$#" -gt 0 ;then
+    USAGE
+    exit 1
+fi
 
 git branch |grep '^  ' | \
 while read -r BRANCH_NAME ;do
