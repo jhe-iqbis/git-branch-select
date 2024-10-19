@@ -23,7 +23,7 @@
 
 set -u
 readonly SUBCOMMAND_NAME="branch-select"
-readonly -a FZFARGS=( --height=20% --reverse --info=inline )
+readonly -a FZFARGS=( --height=20% --reverse --info=inline --select-1 --exit-0 )
 
 CHECKCMD() {
     type "$1" >/dev/null 2>&1
@@ -54,6 +54,13 @@ USAGE() {
     echo "When using the \`-w/--worktrees\` option, selecting a branch where the local branch is checked out in another worktree, will start a subshell in that worktree."
     echo "When using the \`-W/--only-worktrees\` option, you can only select a worktree to start the subshell in."
     echo ""
+    echo "This script returns \`fzf\`-like exit codes:"
+    echo "    0      Normal exit"
+    echo "    1      No match"
+    echo "    2      Error"
+    echo "    130    Interrupted with CTRL-C or ESC"
+    echo "    *      \`git\` exit codes"
+    echo ""
 }
 
 declare -i DODETACH="0"
@@ -61,7 +68,7 @@ declare -i DOWORKTREES="0"
 declare -i DODRYRUN="0"
 declare -i DODEBUG="0"
 
-getoptstr="$(getopt -n "$0" -o "hdwW" -l "help,detach,worktrees,only-worktrees,dry-run,debug" -- "$@")" || exit "$?"
+getoptstr="$(getopt -n "$0" -o "hdwW" -l "help,detach,worktrees,only-worktrees,dry-run,debug" -- "$@")" || exit 2
 eval set -- "$getoptstr"
 unset getoptstr
 while test "$#" -gt 0 ;do
@@ -73,7 +80,7 @@ while test "$#" -gt 0 ;do
         "--dry-run") DODRYRUN="1" ;;
         "--debug") DODEBUG="1" ;;
         "--") shift ;break ;;
-        *) { echo -n "Unhandled argument at:" ;printf ' "%s"' "$@" ;echo ; } >&2 ;exit 1 ;;
+        *) { echo -n "Unhandled argument at:" ;printf ' "%s"' "$@" ;echo ; } >&2 ;exit 2 ;;
     esac
     shift
 done
@@ -85,16 +92,36 @@ if ! CHECKCMD fzf ;then
     echo "Could not find the \`fzf\` command. Please install \`fzf\` to use this script." >&2
     if test -f /etc/os-release -a -r /etc/os-release ;then
         case "$(sed -ne 's/^NAME="\(.*\)"$/\1/p' /etc/os-release)" in
-            "Ubuntu"|*"Debian"*) echo "You may install \`fzf\` from the package repositories using \`sudo apt install fzf\`." >&2 ;exit 1 ;;
+            "Ubuntu"|*"Debian"*) echo "You may install \`fzf\` from the package repositories using \`sudo apt install fzf\`." >&2 ;exit 2 ;;
         esac
     fi
     echo "The project page https://github.com/junegunn/fzf lists installation methods." >&2
-    exit 1
+    exit 2
 fi
 
 LOGDEBUG() {
     if test "$DODEBUG" -ne 0 ;then
         echo "$*" >&2
+    fi
+}
+
+CHECK_FZF_RESULT() {
+    local -i exitcode="$?"
+    local object="$1"
+    shift
+    local selected="$1"
+    shift
+    if test -z "$selected" -a "$exitcode" -eq 0 ;then
+        exitcode="130"
+    fi
+    case "$exitcode" in
+        0) ;;
+        1) echo "No $object available to switch to." ;;
+        130) echo "No $object selected." ;;
+        *) echo "An unknown error occurred." ;;
+    esac >&2
+    if test "$exitcode" -ne 0 ;then
+        exit "$exitcode"
     fi
 }
 
@@ -152,7 +179,7 @@ GITWORKTREE_OPEN() {
     else
         LOGDEBUG "worktree at \"$WORKTREEPATH\" on \"refs/heads/$BRANCH\""
         echo "Opening worktree: $WORKTREEPATH"
-        cd "$WORKTREEPATH" || exit "$?"
+        cd "$WORKTREEPATH" || exit 2
     fi
 }
 
@@ -174,17 +201,15 @@ if test "$DOWORKTREES" -eq 2 ;then
     PATTERN="${PATTERN//"*"/".*"}"
     LOGDEBUG "PATTERN=\"$PATTERN\""
     WORKTREEPATH="$(git worktree list |grep "${PATTERN//"."/".*"}" |fzf "${FZFARGS[@]}")"
+    CHECK_FZF_RESULT worktree "$WORKTREEPATH"
     LOGDEBUG "SELECTED=\"$WORKTREEPATH\""
-    if test -z "$WORKTREEPATH" ;then
-        echo "No option selected." >&2
-        exit 1
-    elif [[ "$WORKTREEPATH" =~ ^(.*[^ ])" "*"   "[A-Fa-f0-9]+" "("(".*")"|"[".*"]")$ ]] ;then
+    if [[ "$WORKTREEPATH" =~ ^(.*[^ ])" "*"   "[A-Fa-f0-9]+" "("(".*")"|"[".*"]")$ ]] ;then
         WORKTREEPATH="${BASH_REMATCH[1]}"
         LOGDEBUG "WORKTREEPATH=\"$WORKTREEPATH\""
-        cd "$WORKTREEPATH" || exit "$?"
+        cd "$WORKTREEPATH" || exit 2
     else
         echo "An internal error occurred: Unable to determine worktree path for selection \"$WORKTREEPATH\"." >&2
-        exit 1
+        exit 2
     fi
     GITWORKTREE_EXEC
 fi
@@ -197,10 +222,7 @@ elif test "$DOWORKTREES" -ne 0 ;then
 fi
 LOGDEBUG "FILTER=\"$FILTER\""
 BRANCH="$(git branch --all --sort=-committerdate --list "$PATTERN" |grep "^[$FILTER] [^(]" |fzf "${FZFARGS[@]}")"
-if test -z "$BRANCH" ;then
-    echo "No option selected." >&2
-    exit 1
-fi
+CHECK_FZF_RESULT branch "$BRANCH"
 BRANCH="${BRANCH#[*+ ] }"
 BRANCH="${BRANCH% -> *}"
 LOGDEBUG "BRANCH=\"$BRANCH\""
@@ -251,5 +273,5 @@ if [[ "$REF" =~ ^"refs/heads/"([^/]*)$ ]] ;then
 fi
 
 echo "No known checkout method for ref \"$REF\"." >&2
-exit 1
+exit 2
 
