@@ -203,7 +203,7 @@ if test "$DOWORKTREES" -eq 2 ;then
     WORKTREEPATH="$(git worktree list |grep "${PATTERN//"."/".*"}" |fzf "${FZFARGS[@]}")"
     CHECK_FZF_RESULT worktree "$WORKTREEPATH"
     LOGDEBUG "SELECTED=\"$WORKTREEPATH\""
-    if [[ "$WORKTREEPATH" =~ ^(.*[^ ])" "*"   "[A-Fa-f0-9]+" "("(".*")"|"[".*"]")$ ]] ;then
+    if [[ "$WORKTREEPATH" =~ ^(.*[^ ])" "*"  "[A-Fa-f0-9]+" "("(".*")"|"[".*"]")$ ]] ;then
         WORKTREEPATH="${BASH_REMATCH[1]}"
         LOGDEBUG "WORKTREEPATH=\"$WORKTREEPATH\""
         cd "$WORKTREEPATH" || exit 2
