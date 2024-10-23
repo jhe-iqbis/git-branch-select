@@ -36,5 +36,5 @@ if test "$#" -gt 0 ;then
     exit 1
 fi
 
-git branch |sed -nE 's/^. ([^(].*)$/\1/p' |xargs -rd'\n' git show --no-patch
+git branch |sed -nE 's,^. ([^(].*)$,refs/heads/\1,p' |xargs -rd'\n' git show --no-patch
 
