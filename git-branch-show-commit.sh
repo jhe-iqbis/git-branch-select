@@ -26,15 +26,68 @@ set -u
 readonly SUBCOMMAND_NAME="branch-show-commit"
 
 USAGE() {
-    echo "USAGE: git $SUBCOMMAND_NAME"
-    echo "Show last commit of all branches."
+    echo "USAGE: git $SUBCOMMAND_NAME [OPTIONs] [--] [BRANCH_NAME] [GIT_SHOW_ARGs]"
+    echo "Show the last commit of each branch."
+    echo ""
+    echo " Option                    | Description                                        "
+    echo "---------------------------|----------------------------------------------------"
+    echo " -h --help                 | Show this help.                                    "
+    echo " -a --all                  | list both remote-tracking and local branches       "
+    echo " -r --remotes              | list only remote-tracking branches                 "
+    echo " -l --local                | list only local branches                           "
+    echo " -s --sort                 | field name to sort branches on                     "
+    echo " -S --no-sort              | don't sort branches                                "
+    echo "    --contains <COMMIT>    | print only branches that contain the commit        "
+    echo "    --no-contains <COMMIT> | print only branches that don't contain the commit  "
+    echo "    --merged <COMMIT>      | print only branches that are merged                "
+    echo "    --no-merged <COMMIT>   | print only branches that are not merged            "
+    echo " -p -u --patch             | show diff for commits                              "
+    echo " -s --no-patch             | suppress diff output for commits                   "
+    echo " -q --quiet                | suppress diff output for commits                   "
+    echo " -f --from <COMMIT>        | print log from the commit to its containing branch "
     echo ""
 }
 
+declare -a GITBRANCHARGS=()
+declare -a GITSHOWARGS=()
+GITBRANCHTYPE=""
+GITBRANCHSORT="-committerdate"
+GITSHOWPATCH="--no-patch"
+GITBRANCHNAME=""
+
+getoptstr="$(getopt -n "$0" -o "harls:Spuqf:" -l "help,all,remotes,local,sort:,no-sort,contains:,no-contains:,merged:,no-merged:,patch,no-patch,quiet,from:" -- "$@")" || exit 2
+eval set -- "$getoptstr"
+unset getoptstr
+while test "$#" -gt 0 ;do
+    case "$1" in
+        "-h"|"--help") USAGE ;exit 0 ;;
+        "-a"|"--all"|"-r"|"--remotes") GITBRANCHTYPE="$1" ;;
+        "-l"|"--local") GITBRANCHTYPE="" ;;
+        "-s"|"--sort") shift ;GITBRANCHSORT="$1" ;;
+        "-S"|"--no-sort") GITBRANCHSORT="" ;;
+        "--contains"|"--no-contains"|"--merged"|"--no-merged") GITBRANCHARGS+=( "$1" "$2" ) ;shift ;;
+        "-p"|"-u"|"--patch"|"--no-patch"|"-q"|"--quiet") GITSHOWPATCH="$1" ;;
+        "-f"|"--from") shift ;GITBRANCHARGS+=( "--contains" "$1" ) ;GITSHOWARGS+=( "^$1~" ) ;;
+        "--") shift ;break ;;
+        *) { echo -n "Unhandled argument at:" ;printf ' "%s"' "$@" ;echo ; } >&2 ;exit 2 ;;
+    esac
+    shift
+done
 if test "$#" -gt 0 ;then
-    USAGE
-    exit 1
+    GITBRANCHNAME="$1"
+    shift
+fi
+GITSHOWARGS+=( "$@" )
+
+if test -n "$GITBRANCHTYPE" ;then
+    GITBRANCHARGS+=( "$GITBRANCHTYPE" )
+fi
+if test -n "$GITBRANCHSORT" ;then
+    GITBRANCHARGS+=( "--sort" "$GITBRANCHSORT" )
+fi
+if test -n "$GITBRANCHNAME" ;then
+    GITBRANCHARGS+=( "--" "$GITBRANCHNAME" )
 fi
 
-git branch |sed -nE 's,^. ([^(].*)$,refs/heads/\1,p' |xargs -rd'\n' git show --no-patch
+git branch --list --format='%(refname)' "${GITBRANCHARGS[@]}" |xargs -rd'\n' git show "${GITSHOWPATCH}" "${GITSHOWARGS[@]}"
 
