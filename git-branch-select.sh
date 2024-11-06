@@ -163,9 +163,9 @@ GITCHECKOUTBRANCH() {
 
 GITCHECKOUTBRANCHNEW() {
     if GITCANSWITCH ;then
-        RUNCMD git switch --create "$@"
+        RUNCMD git switch --track --create "$@"
     else
-        RUNCMD git checkout -b "$@"
+        RUNCMD git checkout --track -b "$@"
     fi
 }
 
