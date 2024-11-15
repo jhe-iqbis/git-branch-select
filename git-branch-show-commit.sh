@@ -55,7 +55,7 @@ GITBRANCHSORT="-committerdate"
 GITSHOWPATCH="--no-patch"
 GITBRANCHNAME=""
 
-getoptstr="$(getopt -n "$0" -o "harls:Spuqf:" -l "help,all,remotes,local,sort:,no-sort,contains:,no-contains:,merged:,no-merged:,patch,no-patch,quiet,from:" -- "$@")" || exit 2
+getoptstr="$(getopt -n "$0" -o "harls:Spuqf:" -l "help,all,remotes,local,sort:,no-sort,contains:,no-contains:,merged:,no-merged:,patch,no-patch,quiet,from:" -- "$@")" || exit "$?"
 eval set -- "$getoptstr"
 unset getoptstr
 while test "$#" -gt 0 ;do
@@ -69,7 +69,7 @@ while test "$#" -gt 0 ;do
         "-p"|"-u"|"--patch"|"--no-patch"|"-q"|"--quiet") GITSHOWPATCH="$1" ;;
         "-f"|"--from") shift ;GITBRANCHARGS+=( "--contains" "$1" ) ;GITSHOWARGS+=( "^$1~" ) ;;
         "--") shift ;break ;;
-        *) { echo -n "Unhandled argument at:" ;printf ' "%s"' "$@" ;echo ; } >&2 ;exit 2 ;;
+        *) { echo -n "Unhandled argument at:" ;printf ' "%s"' "$@" ;echo ; } >&2 ;exit 1 ;;
     esac
     shift
 done
