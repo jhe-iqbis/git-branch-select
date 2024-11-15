@@ -88,12 +88,7 @@ readonly COMMIT_RL="$(git rev-parse "$COMMIT^$OTHERPARENT")"
 readonly COMMIT_RR="$(git rev-parse "$COMMIT")"
 
 if test "$VERBOSE" -ge 1 ;then
-    set -f
-    IFS=$'\n'
-    declare -a parents=( $(git rev-parse "$COMMIT^@") )
-    unset IFS
-    git log --graph "$COMMIT" $(printf '^%s~ ' "${parents[@]}")
-    set +f
+    git log --boundary --graph "$COMMIT" --not "$COMMIT^@"
 fi
 echo "left  diff $COMMIT_LL...$COMMIT_LR"
 echo "right diff $COMMIT_RL..$COMMIT_RR"
