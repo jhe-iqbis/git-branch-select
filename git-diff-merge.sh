@@ -49,7 +49,7 @@ declare -i VERBOSE="0"
 DIFFCOLOR="auto"
 COMMIT="HEAD"
 
-getoptstr="$(getopt -n "$0" -o "hs:o:l:r:v" -l "help,self-parent:,other-parent:,left-parent:,right-parent:,color:,verbose" -- "$@")" || exit "$?"
+getoptstr="$(getopt -n "$0" -o "hs:o:l:r:v" -l "help,self-parent:,other-parent:,left-parent:,right-parent:,color:,verbose" -- "$@")" || exit
 eval set -- "$getoptstr"
 unset getoptstr
 while test "$#" -gt 0 ;do

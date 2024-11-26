@@ -55,7 +55,7 @@ GITBRANCHSORT="-committerdate"
 GITSHOWPATCH="--no-patch"
 GITBRANCHNAME=""
 
-getoptstr="$(getopt -n "$0" -o "harls:Spuqf:" -l "help,all,remotes,local,sort:,no-sort,contains:,no-contains:,merged:,no-merged:,patch,no-patch,quiet,from:" -- "$@")" || exit "$?"
+getoptstr="$(getopt -n "$0" -o "harls:Spuqf:" -l "help,all,remotes,local,sort:,no-sort,contains:,no-contains:,merged:,no-merged:,patch,no-patch,quiet,from:" -- "$@")" || exit
 eval set -- "$getoptstr"
 unset getoptstr
 while test "$#" -gt 0 ;do

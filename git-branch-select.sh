@@ -136,7 +136,7 @@ RUNCMD() {
     done
     echo >&2
     if test "$DODRYRUN" -eq 0 ;then
-        "$@" || exit "$?"
+        "$@" || exit
     fi
 }
 
