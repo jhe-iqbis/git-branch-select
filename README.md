@@ -100,4 +100,13 @@ There are some additional tools bundled with `git-branch-select` that you can in
 | ------------------------ | --------------------------------------------------------------------------------- |
 | `git-branch-auto-delete` | Delete local branches, that were merged and deleted on the remote.                |
 | `git-branch-show-commit` | Show the HEAD commit of each branch.                                              |
+| `git-commit-message`     | Output commit messages in Redmine format.                                         |
 | `git-diff-merge`         | Verify the changes introduced by a conflict resolution merge on a feature branch. |
+
+### Templates
+
+The tools in `templates` will only work on your repository with some customization. Look for `TODO`s in the script. You may want to add the modified version to your repository.
+
+| Tool              | Description                                                |
+| ----------------- | ---------------------------------------------------------- |
+| `git-get-version` | Print version information for commits (e.g. for a ticket). |
