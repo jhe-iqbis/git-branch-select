@@ -91,3 +91,13 @@ $ git bs -W
 > /home/user/repo        ... [main]
   /home/user/git-tools   ... [git-tools]
 ```
+
+## Additional Tools
+
+There are some additional tools bundled with `git-branch-select` that you can install the same way. Here is a short list:
+
+| Tool                     | Description                                                                       |
+| ------------------------ | --------------------------------------------------------------------------------- |
+| `git-branch-auto-delete` | Delete local branches, that were merged and deleted on the remote.                |
+| `git-branch-show-commit` | Show the HEAD commit of each branch.                                              |
+| `git-diff-merge`         | Verify the changes introduced by a conflict resolution merge on a feature branch. |
