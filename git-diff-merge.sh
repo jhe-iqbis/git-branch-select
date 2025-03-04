@@ -1,7 +1,7 @@
 #! /bin/bash
 # MIT License
 #
-# Copyright (c) 2024 iQbis consulting GmbH
+# Copyright (c) 2025 iQbis consulting GmbH
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -30,25 +30,28 @@ USAGE() {
     echo ""
     echo "If no MERGE_COMMIT is given, assume HEAD."
     echo ""
-    echo " Option                    | Description                                         "
-    echo "---------------------------|-----------------------------------------------------"
-    echo " -h --help                 | Show this help.                                     "
-    echo " -s --self-parent NUM      | The parent number to use for the self/right side.   "
-    echo " -o --other-parent NUM     | The parent number to use for the other/left side.   "
-    echo " -l --left-parent NUM      | The parent number to use for the other/left side.   "
-    echo " -r --right-parent NUM     | The parent number to use for the self/right side.   "
-    echo "    --color DIFF_COLOR     | Color argument value to \`diff\`. Defaults to \"auto\". "
-    echo " -v --verbose              | Display commits to be diffed.                       "
+    echo " Option                    | Description                                           "
+    echo "---------------------------|-------------------------------------------------------"
+    echo " -h --help                 | Show this help.                                       "
+    echo " -s --self-parent NUM      | The parent number to use for the self/right side.     "
+    echo " -o --other-parent NUM     | The parent number to use for the other/left side.     "
+    echo " -l --left-parent NUM      | The parent number to use for the other/left side.     "
+    echo " -r --right-parent NUM     | The parent number to use for the self/right side.     "
+    echo "    --color DIFF_COLOR     | Color argument value to \`diff\`. Defaults to \"auto\".   "
+    echo "    --use-revs             | Diff using revision selectors. (This is the default.) "
+    echo "    --use-hashes           | Resolve revisions into commit hashes before diffing.  "
+    echo " -v --verbose              | Display commits to be diffed. (Implies --use-hashes.) "
     echo ""
 }
 
 declare -i SELFPARENT="0"
 declare -i OTHERPARENT="0"
+declare -i USEHASHES="0"
 declare -i VERBOSE="0"
 DIFFCOLOR="auto"
 COMMIT="HEAD"
 
-getoptstr="$(getopt -n "$0" -o "hs:o:l:r:v" -l "help,self-parent:,other-parent:,left-parent:,right-parent:,color:,verbose" -- "$@")" || exit
+getoptstr="$(getopt -n "$0" -o "hs:o:l:r:v" -l "help,self-parent:,other-parent:,left-parent:,right-parent:,color:,use-revs,use-hashes,verbose" -- "$@")" || exit
 eval set -- "$getoptstr"
 unset getoptstr
 while test "$#" -gt 0 ;do
@@ -57,7 +60,9 @@ while test "$#" -gt 0 ;do
         "-s"|"--self-parent"|"-r"|"--right-parent") shift ;SELFPARENT="$1" ;;
         "-o"|"--other-parent"|"-l"|"--left-parent") shift ;OTHERPARENT="$1" ;;
         "--color") shift ;DIFFCOLOR="$1" ;;
-        "-v"|"--verbose") VERBOSE="1" ;;
+        "--use-revs") USEHASHES="0" ;;
+        "--use-hashes") USEHASHES="1" ;;
+        "-v"|"--verbose") VERBOSE="1" ;USEHASHES="1" ;;
         "--") shift ;break ;;
         *) { echo -n "Unhandled argument at:" ;printf ' "%s"' "$@" ;echo ; } >&2 ;exit 1 ;;
     esac
@@ -81,11 +86,17 @@ esac
 
 test "$SELFPARENT" -le 0 && SELFPARENT="1"
 test "$OTHERPARENT" -le 0 && OTHERPARENT="2"
-readonly COMMIT_LL="$(git rev-parse "$COMMIT^$OTHERPARENT")"
-readonly COMMIT_LR="$(git rev-parse "$COMMIT^$SELFPARENT")"
-readonly COMMIT_RL="$(git rev-parse "$COMMIT^$OTHERPARENT")"
-readonly COMMIT_RR="$(git rev-parse "$COMMIT")"
+COMMIT_LL="$COMMIT^$OTHERPARENT"
+COMMIT_LR="$COMMIT^$SELFPARENT"
+COMMIT_RL="$COMMIT^$OTHERPARENT"
+COMMIT_RR="$COMMIT"
 
+if test "$USEHASHES" -ge 1 ;then
+    COMMIT_LL="$(git rev-parse "$COMMIT_LL")"
+    COMMIT_LR="$(git rev-parse "$COMMIT_LR")"
+    COMMIT_RL="$(git rev-parse "$COMMIT_RL")"
+    COMMIT_RR="$(git rev-parse "$COMMIT_RR")"
+fi
 if test "$VERBOSE" -ge 1 ;then
     git log --boundary --graph "$COMMIT" --not "$COMMIT^@"
 fi
