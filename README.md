@@ -101,6 +101,7 @@ There are some additional tools bundled with `git-branch-select` that you can in
 | `git-branch-auto-delete` | Delete local branches, that were merged and deleted on the remote.                |
 | `git-branch-show-commit` | Show the HEAD commit of each branch.                                              |
 | `git-commit-message`     | Output commit messages in Redmine format.                                         |
+| `git-diff-changes`       | Diff changes introduced by two commits or ranges of commits.                      |
 | `git-diff-merge`         | Verify the changes introduced by a conflict resolution merge on a feature branch. |
 
 ### Templates

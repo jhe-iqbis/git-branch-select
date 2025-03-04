@@ -22,21 +22,20 @@
 # SOFTWARE.
 
 set -u
-readonly SUBCOMMAND_NAME="diff-merge"
+readonly SUBCOMMAND_NAME="diff-changes"
 
 USAGE() {
-    echo "USAGE: git $SUBCOMMAND_NAME [OPTIONs] [--] [MERGE_COMMIT]"
-    echo "Diff changes between two branches before and after a merge."
+    echo "USAGE: git $SUBCOMMAND_NAME [OPTIONs] [--] RIGHT_COMMIT_OR_RANGE"
+    echo "       git $SUBCOMMAND_NAME [OPTIONs] [--] LEFT_COMMIT_OR_RANGE RIGHT_COMMIT_OR_RANGE"
+    echo "Diff changes introduced by two commits or ranges of commits."
     echo ""
-    echo "If no MERGE_COMMIT is given, assume HEAD."
+    echo "If LEFT_COMMIT_OR_RANGE is not given, the HEAD commit is used for the left side."
     echo ""
     echo " Option                    | Description                                           "
     echo "---------------------------|-------------------------------------------------------"
     echo " -h --help                 | Show this help.                                       "
-    echo " -s --self-parent NUM      | The parent number to use for the self/right side.     "
-    echo " -o --other-parent NUM     | The parent number to use for the other/left side.     "
-    echo " -l --left-parent NUM      | The parent number to use for the other/left side.     "
-    echo " -r --right-parent NUM     | The parent number to use for the self/right side.     "
+    echo " -l --left-parent NUM      | The parent number to use for the left side.           "
+    echo " -r --right-parent NUM     | The parent number to use for the right side.          "
     echo "    --color DIFF_COLOR     | Color argument value to \`diff\`. Defaults to \"auto\".   "
     echo "    --use-revs             | Diff using revision selectors. (This is the default.) "
     echo "    --use-hashes           | Resolve revisions into commit hashes before diffing.  "
@@ -49,16 +48,16 @@ declare -i PARENT_R="0"
 declare -i USEHASHES="0"
 declare -i VERBOSE="0"
 DIFFCOLOR="auto"
-COMMIT="HEAD"
+COMMIT_L="HEAD"
 
-getoptstr="$(getopt -n "$0" -o "hs:o:l:r:v" -l "help,self-parent:,other-parent:,left-parent:,right-parent:,color:,use-revs,use-hashes,verbose" -- "$@")" || exit
+getoptstr="$(getopt -n "$0" -o "hl:r:v" -l "help,left-parent:,right-parent:,color:,use-revs,use-hashes,verbose" -- "$@")" || exit
 eval set -- "$getoptstr"
 unset getoptstr
 while test "$#" -gt 0 ;do
     case "$1" in
         "-h"|"--help") USAGE ;exit 0 ;;
-        "-o"|"--other-parent"|"-l"|"--left-parent") shift ;PARENT_L="$1" ;;
-        "-s"|"--self-parent"|"-r"|"--right-parent") shift ;PARENT_R="$1" ;;
+        "-l"|"--left-parent") shift ;PARENT_L="$1" ;;
+        "-r"|"--right-parent") shift ;PARENT_R="$1" ;;
         "--color") shift ;DIFFCOLOR="$1" ;;
         "--use-revs") USEHASHES="0" ;;
         "--use-hashes") USEHASHES="1" ;;
@@ -68,28 +67,44 @@ while test "$#" -gt 0 ;do
     esac
     shift
 done
-if test "$#" -gt 0 ;then
-    COMMIT="$1"
-    shift
-fi
-if test "$#" -gt 0 ;then
-    echo "Too many positional arguments: $*" >&2
-    exit 1
-fi
-
-case "$(git rev-parse "$COMMIT^@" |wc -l)" in
-    0) echo "The given MERGE_COMMIT \"$COMMIT\" has no parents." >&2 ;exit 1 ;;
-    1) echo "The given MERGE_COMMIT \"$COMMIT\" is not a merge." >&2 ;exit 1 ;;
-    2) ;;
-    *) test "$PARENT_L" -le 0 -a "$PARENT_R" -le 0 && echo "The given MERGE_COMMIT \"$COMMIT\" has more than two parents. Only diffing the first two. Give at least one parent explicitly to suppress this warning." >&2 ;;
+case "$#" in
+    0) echo "Missing positional argument."
+        echo "USAGE: git $SUBCOMMAND_NAME [OPTIONs] [--] RIGHT_COMMIT_OR_RANGE"
+        echo "       git $SUBCOMMAND_NAME [OPTIONs] [--] LEFT_COMMIT_OR_RANGE RIGHT_COMMIT_OR_RANGE"
+        exit 1 ;;
+    1) COMMIT_R="$1" ;;
+    2) COMMIT_L="$1" ;COMMIT_R="$2" ;;
+    *) echo "Too many positional arguments: $*" >&2 ;exit 1 ;;
 esac
 
-test "$PARENT_L" -le 0 && PARENT_L="2"
-test "$PARENT_R" -le 0 && PARENT_R="1"
-COMMIT_LL="$COMMIT^$PARENT_L"
-COMMIT_LR="$COMMIT^$PARENT_R"
-COMMIT_RL="$COMMIT^$PARENT_L"
-COMMIT_RR="$COMMIT"
+SET_COMMITS() {
+    local name="$1"
+    shift
+    local value="$1"
+    shift
+    local parent="$1"
+    shift
+    local result_var="$1"
+    shift
+    local left right
+    case "$value" in
+        *"..."*) right="${value##*...}" ;left="$(git merge-base "${value%...*}" "$right")" || exit "$?" ;;
+        *".."*) left="${value%..*}" ;right="${value##*..}" ;;
+        *)
+            case "$(git rev-parse "$value^@" |wc -l)" in
+                0) echo "The given $name \"$value\" has no parents." >&2 ;exit 1 ;;
+                1) ;;
+                *) test "$parent" -le 0 && echo "The given $name \"$value\" has more than one parent. Only diffing the first. Give the parent explicitly to suppress this warning." >&2 ;;
+            esac
+            test "$parent" -le 0 && parent="1"
+            left="$value^$parent"
+            right="$value" ;;
+    esac
+    declare -g "${result_var}L=$left" "${result_var}R=$right"
+}
+
+SET_COMMITS LEFT_COMMIT "$COMMIT_L" "$PARENT_L" COMMIT_L
+SET_COMMITS RIGHT_COMMIT "$COMMIT_R" "$PARENT_R" COMMIT_R
 
 if test "$USEHASHES" -ge 1 ;then
     COMMIT_LL="$(git rev-parse "$COMMIT_LL")"
@@ -98,11 +113,11 @@ if test "$USEHASHES" -ge 1 ;then
     COMMIT_RR="$(git rev-parse "$COMMIT_RR")"
 fi
 if test "$VERBOSE" -ge 1 ;then
-    git log --boundary --graph "$COMMIT" --not "$COMMIT^@"
+    git log --boundary --graph "$COMMIT_LR" "$COMMIT_RR" --not "$COMMIT_LL" "$COMMIT_RL"
 fi
-echo "left  diff $COMMIT_LL...$COMMIT_LR"
-echo "right diff $COMMIT_RL..$COMMIT_RR"
+echo "left  diff $COMMIT_LL $COMMIT_LR"
+echo "right diff $COMMIT_RL $COMMIT_RR"
 diff --color="$DIFFCOLOR" \
-    <(git diff "$COMMIT_LL...$COMMIT_LR" |grep '^[+-]') \
-    <(git diff "$COMMIT_RL..$COMMIT_RR" |grep '^[+-]')
+    <(git diff "$COMMIT_LL" "$COMMIT_LR" |grep '^[+-]') \
+    <(git diff "$COMMIT_RL" "$COMMIT_RR" |grep '^[+-]')
 
